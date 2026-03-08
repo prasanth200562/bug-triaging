@@ -1,38 +1,51 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, History, FileText, Users, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, History, FileText, Users, RefreshCw, Zap, ShieldCheck, ClipboardList, LogOut } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ role = 'admin', onLogout, displayName }) => {
+    const adminLinks = [
+        { to: '/admin', label: 'Analytics', icon: LayoutDashboard },
+        { to: '/admin/report', label: 'Report Issue', icon: FileText },
+        { to: '/admin/history', label: 'Bug Log', icon: History },
+        { to: '/admin/developers', label: 'Team', icon: Users },
+        { to: '/admin/retrain', label: 'ML Engine', icon: RefreshCw }
+    ];
+
+    const developerLinks = [
+        { to: '/developer', label: 'My Queue', icon: ClipboardList },
+        { to: '/developer/report', label: 'Quick Report', icon: FileText }
+    ];
+
+    const links = role === 'developer' ? developerLinks : adminLinks;
+
     return (
         <div className="sidebar">
             <div className="logo-container">
                 <div className="logo-icon">
                     <Zap size={24} fill="currentColor" />
                 </div>
-                <div className="logo-text">BugTriage</div>
+                <div>
+                    <div className="logo-text">BugTriage</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {role} portal
+                    </div>
+                </div>
             </div>
 
             <nav className="nav-links" style={{ flex: 1 }}>
-                <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <LayoutDashboard size={20} />
-                    <span>Analytics</span>
-                </NavLink>
-                <NavLink to="/report" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <FileText size={20} />
-                    <span>Report Issue</span>
-                </NavLink>
-                <NavLink to="/history" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <History size={20} />
-                    <span>Bug Log</span>
-                </NavLink>
-                <NavLink to="/developers" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <Users size={20} />
-                    <span>Team</span>
-                </NavLink>
-                <NavLink to="/retrain" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <RefreshCw size={20} />
-                    <span>ML Engine</span>
-                </NavLink>
+                {links.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                        <NavLink key={link.to} to={link.to} end={link.to === '/admin' || link.to === '/developer'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                            <Icon size={20} />
+                            <span>{link.label}</span>
+                        </NavLink>
+                    );
+                })}
             </nav>
+
+            <div style={{ marginBottom: '1rem', padding: '0 0.25rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                {displayName || 'Session Active'}
+            </div>
 
             <div style={{
                 marginTop: 'auto',
@@ -49,6 +62,12 @@ const Sidebar = () => {
                     AI Model v1.2.4 Active
                 </div>
             </div>
+
+            {onLogout && (
+                <button className="btn btn-secondary" style={{ marginTop: '1rem', width: '100%' }} onClick={onLogout}>
+                    <LogOut size={16} /> Logout
+                </button>
+            )}
         </div>
     );
 };

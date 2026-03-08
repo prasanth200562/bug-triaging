@@ -27,6 +27,13 @@ class Bug(Base):
 
     predictions = relationship("ModelPrediction", back_populates="bug", cascade="all, delete-orphan")
     assignments = relationship("BugAssignment", back_populates="bug", cascade="all, delete-orphan")
+    reporter = relationship("User", foreign_keys=[reporter_id])
+
+    @property
+    def reporter_name(self):
+        if not self.reporter:
+            return None
+        return self.reporter.full_name or self.reporter.username
 
 class ModelPrediction(Base):
     __tablename__ = "model_predictions"

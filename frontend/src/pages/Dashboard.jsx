@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import StatsCard from '../components/StatsCard';
 import { Bug, CheckCircle, AlertTriangle, Clock, Zap, Target, Activity, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const basePath = location.pathname.startsWith('/admin') ? '/admin' : '';
     const [stats, setStats] = useState({
         total_bugs: 0,
         auto_assigned: 0,
@@ -50,28 +52,28 @@ const Dashboard = () => {
                     value={stats.total_bugs}
                     icon={Bug}
                     color="#6366f1"
-                    onClick={() => navigate('/history')}
+                    onClick={() => navigate(`${basePath}/history`)}
                 />
                 <StatsCard
                     label="Auto Assigned"
                     value={stats.auto_assigned}
                     icon={CheckCircle}
                     color="#10b981"
-                    onClick={() => navigate('/history?status=assigned')}
+                    onClick={() => navigate(`${basePath}/history?status=assigned`)}
                 />
                 <StatsCard
                     label="Manual Review"
                     value={stats.manual_review}
                     icon={AlertTriangle}
                     color="#f59e0b"
-                    onClick={() => navigate('/history?status=manual-review')}
+                    onClick={() => navigate(`${basePath}/history?status=manual-review`)}
                 />
                 <StatsCard
                     label="Pending Sync"
                     value={stats.pending_bugs}
                     icon={Clock}
                     color="#3b82f6"
-                    onClick={() => navigate('/history?status=open')}
+                    onClick={() => navigate(`${basePath}/history?status=open`)}
                 />
             </div>
 
@@ -151,7 +153,7 @@ const Dashboard = () => {
                     <button
                         className="btn btn-secondary"
                         style={{ width: '100%', marginTop: '2rem', fontSize: '0.875rem' }}
-                        onClick={() => navigate('/history')}
+                        onClick={() => navigate(`${basePath}/history`)}
                     >
                         View Full Logs
                     </button>

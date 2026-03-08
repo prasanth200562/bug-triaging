@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useLocation } from 'react-router-dom';
-import { Search, Filter, ExternalLink, User as UserIcon, Trash2, ChevronRight, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Search, User as UserIcon, Trash2, ChevronRight, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 const BugHistory = () => {
     const { search } = useLocation();
+    const navigate = useNavigate();
     const query = new URLSearchParams(search);
     const filterStatus = query.get('status');
 
@@ -19,6 +20,8 @@ const BugHistory = () => {
     const [suggestions, setSuggestions] = useState([]);
     const [targetDev, setTargetDev] = useState({ id: null, name: '' });
     const [assignmentLoading, setAssignmentLoading] = useState(false);
+    const [resolvingAll, setResolvingAll] = useState(false);
+    const [resolvingId, setResolvingId] = useState(null);
 
     useEffect(() => {
         fetchBugs();
@@ -99,6 +102,34 @@ const BugHistory = () => {
             fetchBugs();
         } catch (err) {
             alert("Failed to delete bugs: " + err.message);
+        }
+    };
+
+    const handleResolve = async (bugId) => {
+        setResolvingId(bugId);
+        try {
+            await axios.patch(`/api/admin/bugs/${bugId}/status`, { status: 'resolved' });
+            fetchBugs();
+        } catch (err) {
+            alert('Failed to resolve bug: ' + err.message);
+        } finally {
+            setResolvingId(null);
+        }
+    };
+
+    const handleResolveAllVisible = async () => {
+        if (filteredBugs.length === 0) return;
+        if (!window.confirm(`Resolve ${filteredBugs.length} visible bugs?`)) return;
+
+        setResolvingAll(true);
+        try {
+            await axios.post('/api/admin/bugs/resolve-all', { bug_ids: filteredBugs.map((b) => b.id) });
+            setSelectedIds([]);
+            fetchBugs();
+        } catch (err) {
+            alert('Failed to resolve all bugs: ' + err.message);
+        } finally {
+            setResolvingAll(false);
         }
     };
 
@@ -227,7 +258,7 @@ const BugHistory = () => {
                     </p>
                 </header>
                 {filterStatus && (
-                    <button className="btn btn-secondary" onClick={() => window.location.href = '/history'} style={{ fontSize: '0.75rem' }}>
+                    <button className="btn btn-secondary" onClick={() => navigate('/admin/history')} style={{ fontSize: '0.75rem' }}>
                         Clear Filters
                     </button>
                 )}
@@ -255,6 +286,14 @@ const BugHistory = () => {
                             <Trash2 size={18} /> Purge ({selectedIds.length})
                         </button>
                     )}
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleResolveAllVisible}
+                        disabled={filteredBugs.length === 0 || resolvingAll}
+                        style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}
+                    >
+                        <CheckCircle2 size={18} /> {resolvingAll ? 'Resolving...' : 'Resolve All'}
+                    </button>
                 </div>
 
                 <div className="table-container">
@@ -269,6 +308,7 @@ const BugHistory = () => {
                                     />
                                 </th>
                                 <th>Incident</th>
+                                <th>Reported By</th>
                                 <th>Classification</th>
                                 <th>Strategic Assignee</th>
                                 <th>Operations</th>
@@ -300,6 +340,11 @@ const BugHistory = () => {
                                             </div>
                                         </td>
                                         <td>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                {bug.reporter_name || 'Unknown'}
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span className={`status-badge status-${bug.status}`}>
                                                 {bug.status === 'new-developer' ? 'New Developer Detected' : bug.status.replace('-', ' ')}
                                             </span>
@@ -322,6 +367,9 @@ const BugHistory = () => {
                                             <div style={{ display: 'flex', gap: '0.25rem' }}>
                                                 <button className="icon-btn" onClick={() => handleOpenAssign(bug)} title="Strategic Route">
                                                     <ChevronRight size={18} />
+                                                </button>
+                                                <button className="icon-btn" onClick={() => handleResolve(bug.id)} disabled={resolvingId === bug.id} title="Resolve Bug">
+                                                    <CheckCircle2 size={18} />
                                                 </button>
                                                 <button className="icon-btn text-danger" onClick={() => handleDelete(bug.id)} title="Purge Record">
                                                     <Trash2 size={18} />

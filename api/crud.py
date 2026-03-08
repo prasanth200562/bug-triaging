@@ -2,6 +2,10 @@ from sqlalchemy.orm import Session
 from api import models, schemas
 import json
 
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
 def get_bug(db: Session, bug_id: int):
     return db.query(models.Bug).filter(models.Bug.id == bug_id).first()
 
@@ -13,13 +17,31 @@ from sqlalchemy.orm import Session, joinedload
 def get_bugs(db: Session, skip: int = 0, limit: int = 500):
     return db.query(models.Bug).options(
         joinedload(models.Bug.assignments),
-        joinedload(models.Bug.predictions)
+        joinedload(models.Bug.predictions),
+        joinedload(models.Bug.reporter)
     ).order_by(models.Bug.id.desc()).offset(skip).limit(limit).all()
 
 def create_bug(db: Session, bug: schemas.BugCreate, tags: str = None):
-    bug_data = bug.dict()
+    bug_data = bug.dict(exclude={"reporter_username"})
     if tags:
         bug_data["tags"] = tags
+
+    reporter_username = bug.reporter_username
+    if reporter_username:
+        normalized = reporter_username.strip().lower().replace(" ", "_")
+        reporter = db.query(models.User).filter(models.User.username == normalized).first()
+        if not reporter:
+            reporter = models.User(
+                username=normalized,
+                full_name=reporter_username.strip(),
+                password_hash="user_portal",
+                role="reporter"
+            )
+            db.add(reporter)
+            db.commit()
+            db.refresh(reporter)
+        bug_data["reporter_id"] = reporter.id
+
     db_bug = models.Bug(**bug_data)
     db.add(db_bug)
     db.commit()
@@ -67,7 +89,8 @@ def create_assignment(db: Session, bug_id: int, developer_name: str, assignment_
         bug_id=bug_id,
         developer_id=developer_id,
         developer_name=developer_name,
-        assignment_type=assignment_type
+        assignment_type=assignment_type,
+        assigned_by_id=None
     )
     db.add(db_assignment)
     
@@ -83,6 +106,105 @@ def create_assignment(db: Session, bug_id: int, developer_name: str, assignment_
     db.commit()
     db.refresh(db_assignment)
     return db_assignment
+
+
+def _workflow_status(raw_status: str) -> str:
+    if raw_status in {"closed", "resolved"}:
+        return "resolved"
+    return "pending"
+
+
+def get_user_bug_items(db: Session, reporter_username: str):
+    reporter = db.query(models.User).filter(models.User.username == reporter_username).first()
+    if not reporter:
+        return []
+
+    bugs = db.query(models.Bug).options(joinedload(models.Bug.assignments)).filter(
+        models.Bug.reporter_id == reporter.id
+    ).order_by(models.Bug.id.desc()).all()
+
+    result = []
+    for bug in bugs:
+        latest = bug.assignments[-1] if bug.assignments else None
+        result.append({
+            "id": bug.id,
+            "title": bug.title,
+            "status": bug.status,
+            "workflow_status": _workflow_status(bug.status),
+            "assigned_to": latest.developer_name if latest else None,
+            "source": bug.source,
+            "created_at": bug.created_at,
+            "updated_at": bug.updated_at,
+        })
+    return result
+
+
+def get_developer_bug_items(db: Session, developer_user: models.User):
+    assignments = db.query(models.BugAssignment).filter(
+        models.BugAssignment.developer_id == developer_user.id
+    ).order_by(models.BugAssignment.id.desc()).all()
+
+    bug_ids = []
+    seen = set()
+    for assignment in assignments:
+        if assignment.bug_id not in seen:
+            seen.add(assignment.bug_id)
+            bug_ids.append(assignment.bug_id)
+
+    if not bug_ids:
+        return []
+
+    bugs = db.query(models.Bug).options(joinedload(models.Bug.assignments)).filter(models.Bug.id.in_(bug_ids)).all()
+    by_id = {bug.id: bug for bug in bugs}
+
+    result = []
+    for bug_id in bug_ids:
+        bug = by_id.get(bug_id)
+        if not bug:
+            continue
+        latest = bug.assignments[-1] if bug.assignments else None
+        result.append({
+            "id": bug.id,
+            "title": bug.title,
+            "status": bug.status,
+            "workflow_status": _workflow_status(bug.status),
+            "assigned_to": latest.developer_name if latest else None,
+            "source": bug.source,
+            "created_at": bug.created_at,
+            "updated_at": bug.updated_at,
+        })
+    return result
+
+
+def update_bug_status_for_developer(db: Session, bug_id: int, developer_user: models.User, new_status: str):
+    assignment = db.query(models.BugAssignment).filter(
+        models.BugAssignment.bug_id == bug_id,
+        models.BugAssignment.developer_id == developer_user.id
+    ).order_by(models.BugAssignment.id.desc()).first()
+
+    if not assignment:
+        return None
+
+    bug = db.query(models.Bug).filter(models.Bug.id == bug_id).first()
+    if not bug:
+        return None
+
+    # Keep DB status compatible with current schema while exposing pending/resolved in API.
+    bug.status = "closed" if new_status == "resolved" else "in-progress"
+    db.commit()
+    db.refresh(bug)
+
+    latest = bug.assignments[-1] if bug.assignments else None
+    return {
+        "id": bug.id,
+        "title": bug.title,
+        "status": bug.status,
+        "workflow_status": _workflow_status(bug.status),
+        "assigned_to": latest.developer_name if latest else None,
+        "source": bug.source,
+        "created_at": bug.created_at,
+        "updated_at": bug.updated_at,
+    }
 
 def get_developer_workload(db: Session):
     """Returns a dictionary of {developer_name: bug_count} for active assignments."""
@@ -144,3 +266,30 @@ def delete_bugs(db: Session, bug_ids: list):
 
 def get_retrain_queue(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.RetrainQueue).filter(models.RetrainQueue.status == "pending").offset(skip).limit(limit).all()
+
+
+def update_bug_status_admin(db: Session, bug_id: int, status: str):
+    bug = db.query(models.Bug).filter(models.Bug.id == bug_id).first()
+    if not bug:
+        return None
+
+    bug.status = "closed" if status == "resolved" else "in-progress"
+    db.commit()
+    db.refresh(bug)
+    return bug
+
+
+def resolve_all_bugs_admin(db: Session, bug_ids: list[int] | None = None):
+    query = db.query(models.Bug)
+    if bug_ids:
+        query = query.filter(models.Bug.id.in_(bug_ids))
+
+    bugs = query.all()
+    updated = 0
+    for bug in bugs:
+        if bug.status != "closed":
+            bug.status = "closed"
+            updated += 1
+
+    db.commit()
+    return updated
