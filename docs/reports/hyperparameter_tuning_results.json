@@ -1,0 +1,22 @@
+{
+    "logistic_regression": {
+        "best_score": 0.4600517209440184,
+        "best_params": {
+            "penalty": "l2",
+            "C": 10
+        }
+    },
+    "random_forest": {
+        "best_score": 0.4396054610796192,
+        "best_params": {
+            "n_estimators": 200,
+            "max_depth": null
+        }
+    },
+    "linear_svm": {
+        "best_score": 0.4790538698084546,
+        "best_params": {
+            "C": 10
+        }
+    }
+}

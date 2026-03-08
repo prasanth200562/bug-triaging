@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Data files (DO NOT PUSH DATASETS)
+data/raw/
+data/intermediate/
+data/features/
+
+# Model files
+*.pkl
+
+# Environment variables
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# OS files
+.DS_Store
+
+# Frontend Dist
+frontend/dist/

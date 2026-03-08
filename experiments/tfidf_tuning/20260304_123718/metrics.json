@@ -1,0 +1,72 @@
+{
+  "timestamp": "20260304_123718",
+  "runs": [
+    {
+      "name": "baseline",
+      "config": {
+        "type": "baseline",
+        "ngram_range": [
+          1,
+          3
+        ],
+        "max_features": 60000
+      },
+      "linear_svc": {
+        "accuracy": 0.5633,
+        "macro_f1": 0.4673
+      },
+      "logistic_regression": {
+        "accuracy": 0.5222,
+        "macro_f1": 0.3352
+      }
+    },
+    {
+      "name": "wordchar_medium",
+      "config": {
+        "type": "wordchar",
+        "word_max": 40000,
+        "char_max": 20000
+      },
+      "linear_svc": {
+        "accuracy": 0.5761,
+        "macro_f1": 0.4903
+      },
+      "logistic_regression": {
+        "accuracy": 0.5522,
+        "macro_f1": 0.4123
+      }
+    },
+    {
+      "name": "wordchar_small",
+      "config": {
+        "type": "wordchar",
+        "word_max": 20000,
+        "char_max": 5000
+      },
+      "linear_svc": {
+        "accuracy": 0.5678,
+        "macro_f1": 0.4842
+      },
+      "logistic_regression": {
+        "accuracy": 0.5506,
+        "macro_f1": 0.4077
+      }
+    },
+    {
+      "name": "word_1_2_big",
+      "config": {
+        "type": "wordchar",
+        "word_max": 60000,
+        "char_max": 0
+      },
+      "linear_svc": {
+        "accuracy": 0.5794,
+        "macro_f1": 0.4891
+      },
+      "logistic_regression": {
+        "accuracy": 0.5222,
+        "macro_f1": 0.3324
+      }
+    }
+  ]
+}

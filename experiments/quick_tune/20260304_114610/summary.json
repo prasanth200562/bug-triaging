@@ -1,0 +1,23 @@
+{
+  "linear_svm": {
+    "best_score": 0.43403262712222296,
+    "best_params": {
+      "C": 1.0
+    }
+  },
+  "logistic_regression": {
+    "best_score": 0.41010537994558804,
+    "best_params": {
+      "penalty": "l2",
+      "C": 10.0
+    }
+  },
+  "random_forest": {
+    "best_score": 0.2529597602489764,
+    "best_params": {
+      "n_estimators": 200,
+      "min_samples_leaf": 2,
+      "max_depth": null
+    }
+  }
+}

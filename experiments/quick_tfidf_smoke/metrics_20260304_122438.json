@@ -1,0 +1,12 @@
+{
+  "timestamp": "20260304_122438",
+  "n_samples": 5000,
+  "baseline": {
+    "accuracy": 0.533,
+    "macro_f1": 0.4696
+  },
+  "variant": {
+    "accuracy": 0.534,
+    "macro_f1": 0.4809
+  }
+}

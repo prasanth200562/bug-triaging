@@ -1,0 +1,6 @@
+model,accuracy,macro_f1
+linear_svm,0.5539,0.4788
+logistic_regression,0.5622,0.4887
+naive_bayes,0.3617,0.1112
+random_forest,0.4228,0.3428
+ensemble,0.5761,0.4900
